@@ -1,0 +1,157 @@
+[
+  {
+    "field": "code",
+    "column": "Outlet Number",
+    "required": true
+  },
+  {
+    "field": "name",
+    "column": "Pump Name",
+    "required": true
+  },
+  {
+    "field": "division",
+    "column": "Division",
+    "required": true
+  },
+  {
+    "field": "territory",
+    "column": "Territory",
+    "required": true
+  },
+  {
+    "field": "sales_area",
+    "column": "Sales Area",
+    "required": true
+  },
+  {
+    "field": "category",
+    "column": "Category",
+    "required": true
+  },
+  {
+    "field": "city",
+    "column": "City",
+    "required": true
+  },
+  {
+    "field": "district",
+    "column": "District",
+    "required": true
+  },
+  {
+    "field": "province",
+    "column": "Province",
+    "required": true
+  },
+  {
+    "field": "location",
+    "column": "Location",
+    "required": true
+  },
+  {
+    "field": "atp",
+    "column": "ATP (KL/month)",
+    "required": true
+  },
+  {
+    "field": "operated",
+    "column": "Operation Type",
+    "required": true
+  },
+  {
+    "field": "finance",
+    "column": "Financing",
+    "required": true
+  },
+  {
+    "field": "lat",
+    "column": "Latitude",
+    "required": true
+  },
+  {
+    "field": "lon",
+    "column": "Longitude",
+    "required": true
+  },
+  {
+    "field": "match_type",
+    "column": "Match Confidence",
+    "required": true
+  },
+  {
+    "field": "runner_up",
+    "column": "Runner-up Category",
+    "required": true
+  },
+  {
+    "field": "old_tag",
+    "column": "Old Tag",
+    "required": true
+  },
+  {
+    "field": "location_context",
+    "column": "Location Context",
+    "required": true
+  },
+  {
+    "field": "traffic_pattern",
+    "column": "Traffic Pattern",
+    "required": true
+  },
+  {
+    "field": "land_use_pattern",
+    "column": "Land Use Pattern",
+    "required": true
+  },
+  {
+    "field": "customer_profile",
+    "column": "Typical Customer Profile",
+    "required": true
+  },
+  {
+    "field": "footfall_tier",
+    "column": "Footfall Tier",
+    "required": true
+  },
+  {
+    "field": "peak_sale_time",
+    "column": "Peak Sale Time",
+    "required": true
+  },
+  {
+    "field": "seasonality_impact",
+    "column": "Seasonality Impact",
+    "required": true
+  },
+  {
+    "field": "throughfare_type",
+    "column": "Throughfare Type",
+    "required": true
+  },
+  {
+    "field": "cards",
+    "column": "PSO Cards",
+    "required": true
+  },
+  {
+    "field": "shop",
+    "column": "Shop Stop",
+    "required": true
+  },
+  {
+    "field": "vibe",
+    "column": "VIBE",
+    "required": true
+  },
+  {
+    "field": "r95",
+    "column": "R-95",
+    "required": true
+  },
+  {
+    "field": "alli",
+    "column": "Brand Alliance",
+    "required": true
+  }
+]

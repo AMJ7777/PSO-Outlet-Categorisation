@@ -1,0 +1,7 @@
+{
+  "Metropolitan": { "color": "#2f5fb0", "bg": "#e8eefb" },
+  "Local Convenience": { "color": "#7a3fb0", "bg": "#f0e7fb" },
+  "Rural": { "color": "#4c8a3a", "bg": "#e9f3e4" },
+  "Pitstop": { "color": "#c17a1f", "bg": "#faf0dd" },
+  "Highway": { "color": "#b03830", "bg": "#fae6e3" }
+}

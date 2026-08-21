@@ -1,0 +1,12 @@
+{
+  "name": "pso-north-region-site-map",
+  "version": "4.0.0",
+  "description": "Full-stack PSO North Region Site Categorisation Map — new frontend UI/UX with the corrected categorisation data and a Node/Express backend supporting add, edit and remove pump operations.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {},
+  "author": "PSO North Region",
+  "license": "ISC"
+}
