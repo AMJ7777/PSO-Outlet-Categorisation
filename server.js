@@ -14,6 +14,7 @@ const path = require('path');
 const xlsx = require('./lib/xlsx');
 const schema = require('./lib/schema');
 const pumpData = require('./lib/pumpData');
+const supabaseStore = require('./lib/supabaseStore');
 
 const PORT = process.env.PORT || 3000;
 
@@ -29,15 +30,35 @@ const OUTLETS_PATH = path.join(DATA_DIR, 'outlets.json');
 const CATEGORIES_PATH = path.join(DATA_DIR, 'categories.json');
 const FACILITIES_PATH = path.join(DATA_DIR, 'facilities.json');
 const COLUMN_CONFIG_PATH = path.join(DATA_DIR, 'column-config.json');
+const CUSTOM_COLUMNS_PATH = path.join(DATA_DIR, 'custom-columns.json');
 
 /* The pump workbook is read once at boot and kept in memory — it is the
    source of the categorisation rubric and of the sheet's column names. */
 let PUMP_DATA = null;
 
 /* ---------------------------------------------------------------------
-   Small JSON file helpers
+   Small JSON storage helpers — local data/*.json files by default, or
+   Supabase (see lib/supabaseStore.js) when SUPABASE_URL and
+   SUPABASE_SERVICE_ROLE_KEY are set, which Vercel deployments need since
+   its filesystem is read-only/ephemeral in production. Every call site in
+   this file just passes one of the five *_PATH constants above, so the
+   backend switch happens here only — nothing downstream has to know which
+   store is live.
    --------------------------------------------------------------------- */
+function configKeyFor(filePath) {
+  if (filePath === CATEGORIES_PATH) return 'categories';
+  if (filePath === COLUMN_CONFIG_PATH) return 'column_config';
+  if (filePath === CUSTOM_COLUMNS_PATH) return 'custom_columns';
+  return null;
+}
+
 function readJson(filePath) {
+  if (supabaseStore.enabled) {
+    if (filePath === OUTLETS_PATH) return supabaseStore.readOutlets();
+    if (filePath === FACILITIES_PATH) return supabaseStore.readFacilities();
+    const key = configKeyFor(filePath);
+    if (key) return supabaseStore.readConfig(key);
+  }
   return new Promise((resolve, reject) => {
     fs.readFile(filePath, 'utf8', (err, data) => {
       if (err) return reject(err);
@@ -47,6 +68,12 @@ function readJson(filePath) {
   });
 }
 function writeJson(filePath, data) {
+  if (supabaseStore.enabled) {
+    if (filePath === OUTLETS_PATH) return supabaseStore.writeOutlets(data);
+    if (filePath === FACILITIES_PATH) return supabaseStore.writeFacilities(data);
+    const key = configKeyFor(filePath);
+    if (key) return supabaseStore.writeConfig(key, data);
+  }
   return new Promise((resolve, reject) => {
     fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
       if (err) return reject(err);
@@ -462,6 +489,44 @@ async function handleUpdateSchemaColumns(req, res) {
 }
 
 /**
+ * Admin-only. Adds a brand new column to the sheet schema — { password,
+ * column, type } — so a new data category can be tracked (and shows up in
+ * the next export/import) without touching the source code. Persisted to
+ * CUSTOM_COLUMNS_PATH so it survives a restart.
+ */
+async function handleAddSchemaColumn(req, res) {
+  let body;
+  try { body = await readBody(req); }
+  catch (e) { return sendJson(res, 400, { error: e.message || 'Invalid request body.' }); }
+
+  if (!isAdmin(body)) {
+    return sendJson(res, 401, { error: 'Incorrect admin password. The column was not added.' });
+  }
+
+  let added;
+  try {
+    added = schema.addColumn({ column: body.column, type: body.type });
+  } catch (e) {
+    return sendJson(res, 422, { error: e.message });
+  }
+
+  let customColumns = [];
+  try {
+    const saved = await readJson(CUSTOM_COLUMNS_PATH);
+    if (Array.isArray(saved)) customColumns = saved;
+  } catch (e) { /* none yet */ }
+  customColumns.push({ field: added.field, column: added.column, type: added.type });
+  try {
+    await writeJson(CUSTOM_COLUMNS_PATH, customColumns);
+  } catch (e) {
+    console.error('Could not persist the new column:', e);
+    return sendJson(res, 500, { error: 'The column was added but could not be saved to disk.' });
+  }
+
+  return handleGetSchema(req, res);
+}
+
+/**
  * Admin-only. Accepts { password, filename, data } where data is the base64
  * of an .xlsx/.csv whose column names must match the schema exactly.
  */
@@ -634,6 +699,7 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/schema' && method === 'GET') return await handleGetSchema(req, res);
     if (pathname === '/api/schema/columns' && method === 'POST') return await handleUpdateSchemaColumns(req, res);
+    if (pathname === '/api/schema/add-column' && method === 'POST') return await handleAddSchemaColumn(req, res);
     if (pathname === '/api/export.xlsx' && (method === 'GET' || method === 'POST')) return await handleExportXlsx(req, res, url);
     if (pathname === '/api/export.csv' && (method === 'GET' || method === 'POST')) return await handleExportCsv(req, res, url);
     if (pathname === '/api/import' && method === 'POST') return await handleImport(req, res);
@@ -675,6 +741,21 @@ async function syncPumpWorkbook() {
   }
 }
 
+/* Columns added via Import sheet -> "Add a new column" (handleAddSchemaColumn)
+   are restored before loadColumnConfig below, so a later rename/required
+   edit of one of them (also persisted in COLUMN_CONFIG_PATH) still applies. */
+async function loadCustomColumns() {
+  try {
+    const saved = await readJson(CUSTOM_COLUMNS_PATH);
+    if (Array.isArray(saved)) {
+      saved.forEach((def) => {
+        try { schema.addColumn(def); }
+        catch (e) { console.error('Could not restore custom column ' + (def && def.column) + ':', e.message); }
+      });
+    }
+  } catch (e) { /* none added yet */ }
+}
+
 /* A previously saved column mapping (Import sheet -> Column settings)
    overrides the defaults in lib/schema.js on every boot. */
 async function loadColumnConfig() {
@@ -684,9 +765,12 @@ async function loadColumnConfig() {
   } catch (e) { /* no saved config yet — keep the defaults */ }
 }
 
-loadColumnConfig().then(syncPumpWorkbook).then(() => {
+loadCustomColumns().then(loadColumnConfig).then(syncPumpWorkbook).then(() => {
   server.listen(PORT, () => {
     console.log(`PSO North Region Site Map server running on http://localhost:${PORT}`);
     console.log('Site-data upload is admin-gated (set PSO_ADMIN_PASSWORD to change the password).');
+    console.log(supabaseStore.enabled
+      ? 'Data store: Supabase (SUPABASE_URL set).'
+      : 'Data store: local JSON files in /data (set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to use Supabase instead).');
   });
 });

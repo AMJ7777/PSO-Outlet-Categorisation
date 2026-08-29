@@ -734,10 +734,13 @@ button,input,select{font:inherit;color:inherit}
 .rail h2{margin:0;padding:13px 16px 11px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:var(--paper);z-index:2}
 .grp{padding:14px 16px;border-bottom:1px solid var(--line-soft)}
 .grp>h3{margin:0 0 9px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-weight:700}
-.cat-item{display:flex;align-items:center;gap:9px;padding:7px 0;cursor:pointer;font-size:13.5px;user-select:none}
+.cat-item{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:5px;cursor:pointer;font-size:13.5px;user-select:none}
 .cat-item .dot{width:11px;height:11px;border-radius:50%;flex:none}
 .cat-item .nm{flex:1}
 .cat-item .n{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.cat-item:not(.off){background:#E8F0FB;color:var(--pso-blue-deep)}
+.cat-item:not(.off) .nm{font-weight:600}
+.cat-item:not(.off) .n{color:var(--pso-blue)}
 .chk{display:flex;align-items:center;gap:9px;padding:5px 0;cursor:pointer;font-size:13.5px}
 .chk input{accent-color:var(--pso-blue);width:15px;height:15px;margin:0}
 .chk .n{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
@@ -780,6 +783,7 @@ button,input,select{font:inherit;color:inherit}
 .item .meta{font-size:11.5px;color:var(--ink-3);margin-top:2px}
 .item .code{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
 .item .km{font-family:var(--mono);font-size:11.5px;color:var(--pso-blue);font-weight:600;white-space:nowrap}
+.km-drive{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--ink-3);white-space:nowrap;margin-top:2px}
 .more{padding:13px 16px;text-align:center}
 .more button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 16px;font-size:12px;color:var(--ink-2);cursor:pointer}
 .empty{padding:34px 22px;text-align:center;color:var(--ink-3)}
@@ -862,6 +866,10 @@ button,input,select{font:inherit;color:inherit}
 .nearby-more{margin-top:5px;border:0;background:none;color:var(--pso-blue);font-size:11.5px;cursor:pointer;padding:2px 0}
 .nearby-empty,.nearby-status{font-size:12px;color:var(--ink-3);background:var(--panel);padding:10px 11px;border-radius:3px;line-height:1.5}
 .nearby-retry{border:0;background:none;color:var(--pso-blue);font-size:12px;cursor:pointer;text-decoration:underline}
+.driving-btn{border:0;background:none;color:var(--pso-blue);font-size:11px;font-weight:600;cursor:pointer;text-decoration:underline;padding:0;margin-left:8px}
+.driving-btn:disabled{opacity:.55;cursor:default;text-decoration:none}
+.driving-result{margin-left:8px;font-size:11px;color:var(--ink-3)}
+.driving-result.err{color:#c0392b}
 
 /* ---------- clusters & markers ---------- */
 .marker-cluster-custom div{color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11.5px;font-weight:600;box-shadow:0 0 0 4px rgba(255,255,255,.45)}
@@ -1046,6 +1054,11 @@ button,input,select{font:inherit;color:inherit}
 .col-row .col-required{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-3);white-space:nowrap}
 .col-row .col-required input{width:14px;height:14px;margin:0;accent-color:var(--pso-blue)}
 .col-row .col-required.locked{opacity:.6}
+.col-add{margin-top:14px}
+.col-add label{font-size:12px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:6px}
+.col-add-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.col-add-row input[type="text"]{padding:8px 9px;border:1px solid var(--line);border-radius:4px;font-size:12.5px;width:100%}
+.col-add-row select{padding:8px 9px;border:1px solid var(--line);border-radius:4px;background:var(--paper);font-size:12.5px}
 
 .rubric-note{font-size:11.5px;color:var(--ink-3);margin:2px 0 0}
 .cat-source{display:inline-block;margin-left:7px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
@@ -1160,8 +1173,8 @@ button,input,select{font:inherit;color:inherit}
       <div class="mgmt-grid">
         <button class="mgmt-btn add" id="btnAddPump" type="button">+ Add new pump</button>
         <button class="mgmt-btn remove" id="btnRemovePump" type="button">Remove pump</button>
-        <button class="mgmt-btn sheet" id="btnExportSheet" type="button">&#8681; Export outlet sheet</button>
-        <button class="mgmt-btn sheet" id="btnImportSheet" type="button">&#8679; Import outlet sheet</button>
+        <button class="mgmt-btn sheet" id="btnExportSheet" type="button">Export outlet sheet</button>
+        <button class="mgmt-btn sheet" id="btnImportSheet" type="button">Import outlet sheet</button>
       </div>
     </div>
 
@@ -1337,6 +1350,19 @@ button,input,select{font:inherit;color:inherit}
 
       <div id="columns-list" class="col-list"></div>
 
+      <div class="col-add">
+        <label>Add a new column</label>
+        <div class="col-add-row">
+          <input type="text" id="new-column-name" placeholder="e.g. EV Charging">
+          <select id="new-column-type">
+            <option value="string">Text</option>
+            <option value="number">Number</option>
+            <option value="bool">Yes / No</option>
+          </select>
+          <button type="button" class="ef-cancel" id="add-column-btn" style="width:auto;padding:8px 14px">Add column</button>
+        </div>
+      </div>
+
       <div id="columns-status" class="sheet-status" style="display:none"></div>
     </div>
     <div class="modal-footer">
@@ -1397,7 +1423,6 @@ button,input,select{font:inherit;color:inherit}
     <button id="mMenuLegend"><span class="gi">&#9679;</span> Show / hide legend</button>
     <button id="mMenuExport"><span class="gi">&#8681;</span> Export outlet sheet</button>
     <button id="mMenuImport"><span class="gi">&#8679;</span> Import outlet sheet</button>
-    <button id="mMenuExportEdits"><span class="gi">&#9998;</span> Export edited sites only <span class="tag" id="mMenuEditTag">0</span></button>
     <button id="mMenuReset"><span class="gi">&#8635;</span> Reset all filters</button>
     <button id="mMenuClose"><span class="gi">&times;</span> Close</button>
   </nav>
@@ -1520,6 +1545,14 @@ function dash(v){
   var s = (v === null || v === undefined) ? "" : String(v).trim();
   return s === "" ? "—" : escapeHtml(s);
 }
+/* A site can carry more than one brand alliance. f.alli is an array of
+   names going forward; older records saved it as one string (sometimes
+   "A & B" for multiple brands), so normalise those on read. */
+function alliList(f){
+  if (!f || !f.alli) return [];
+  if (Array.isArray(f.alli)) return f.alli.filter(Boolean);
+  return String(f.alli).split(/\s*&\s*/).map(function(s){ return s.trim(); }).filter(Boolean);
+}
 
 /* The categorisation signals, in the order the pump workbook lists them.
    Used when /api/schema is unreachable (page opened from disk). */
@@ -1617,7 +1650,7 @@ buildLegend();
     var f = CARDS[k];
     if (f.shop) totals.shop++;
     if (f.vibe) totals.vibe++;
-    if (f.alli) totals.alli++;
+    if (alliList(f).length) totals.alli++;
     if (f.cards) totals.cards++;
   });
   $("nShop").textContent  = totals.shop;
@@ -1685,27 +1718,27 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18
 }).addTo(map);
 
-function clusterIconFor(cat){
-  var color = COLOR_BY_CAT[cat];
-  return function(cluster){
-    var count = cluster.getChildCount();
-    return L.divIcon({
-      html: '<div style="background:' + color + '">' + count + '</div>',
-      className: "marker-cluster-custom",
-      iconSize: L.point(34, 34)
-    });
-  };
+function clusterIcon(cluster){
+  var kids = cluster.getAllChildMarkers();
+  var cats = {};
+  kids.forEach(function(m){ cats[m.category] = true; });
+  var catKeys = Object.keys(cats);
+  var color = catKeys.length === 1 ? COLOR_BY_CAT[catKeys[0]] : "var(--pso-blue-deep)";
+  var count = cluster.getChildCount();
+  return L.divIcon({
+    html: '<div style="background:' + color + '">' + count + '</div>',
+    className: "marker-cluster-custom",
+    iconSize: L.point(34, 34)
+  });
 }
 
-var clusterGroups = {};
-CATS.forEach(function(c){
-  clusterGroups[c.key] = L.markerClusterGroup({
-    iconCreateFunction: clusterIconFor(c.key),
-    maxClusterRadius: 45,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false
-  });
+var clusterGroup = L.markerClusterGroup({
+  iconCreateFunction: clusterIcon,
+  maxClusterRadius: 45,
+  spiderfyOnMaxZoom: true,
+  showCoverageOnHover: false
 });
+map.addLayer(clusterGroup);
 
 var markerRefs = [], hereMarker = null;
 
@@ -1716,6 +1749,7 @@ OUTLETS.forEach(function(o){
     radius: 6, weight: 2, color: "#fff",
     fillColor: color, fillOpacity: 0.95, opacity: 1
   });
+  marker.category = o.category;
   // Detail now opens in the side panel / bottom sheet instead of a popup.
   marker.on("click", function(){ selectOutlet(o.code); });
   markerRefs.push({ outlet: o, marker: marker });
@@ -1728,24 +1762,13 @@ function outletRef(code){
 /* =====================================================================
    ADD / REMOVE PUMP SUPPORT — map + cluster wiring
    ===================================================================== */
-function ensureClusterGroup(catKey){
-  if (!clusterGroups[catKey]){
-    clusterGroups[catKey] = L.markerClusterGroup({
-      iconCreateFunction: clusterIconFor(catKey),
-      maxClusterRadius: 45,
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false
-    });
-    if (state.activeCats[catKey] !== false) map.addLayer(clusterGroups[catKey]);
-  }
-}
 function addOutletToMap(o){
-  ensureClusterGroup(o.category);
   var color = COLOR_BY_CAT[o.category] || "#999";
   var marker = L.circleMarker([o.lat, o.lon], {
     radius: 6, weight: 2, color: "#fff",
     fillColor: color, fillOpacity: 0.95, opacity: 1
   });
+  marker.category = o.category;
   marker.on("click", function(){ selectOutlet(o.code); });
   markerRefs.push({ outlet: o, marker: marker });
 }
@@ -1777,7 +1800,7 @@ function matchesFilters(o){
   var f = CARDS[String(o.code)];
   if (state.facilities.shop  && !(f && f.shop)) return false;
   if (state.facilities.vibe  && !(f && f.vibe)) return false;
-  if (state.facilities.alli  && !(f && f.alli)) return false;
+  if (state.facilities.alli  && !alliList(f).length) return false;
   if (state.facilities.cards && !(f && f.cards)) return false;
   if (state.search) {
     var hay = (o.name + " " + o.city + " " + o.district + " " + o.location + " " + o.code).toLowerCase();
@@ -1795,20 +1818,12 @@ function haversineKm(a, b, c, d){
 
 function apply(){
   results = [];
-  CATS.forEach(function(c){ clusterGroups[c.key].clearLayers(); });
+  clusterGroup.clearLayers();
 
   markerRefs.forEach(function(ref){
     if (matchesFilters(ref.outlet)) {
-      clusterGroups[ref.outlet.category].addLayer(ref.marker);
+      clusterGroup.addLayer(ref.marker);
       results.push(ref.outlet);
-    }
-  });
-
-  CATS.forEach(function(c){
-    if (state.activeCats[c.key]) {
-      if (!map.hasLayer(clusterGroups[c.key])) map.addLayer(clusterGroups[c.key]);
-    } else {
-      if (map.hasLayer(clusterGroups[c.key])) map.removeLayer(clusterGroups[c.key]);
     }
   });
 
@@ -1850,20 +1865,26 @@ var M_CHUNK = 40, mShown = M_CHUNK;
 function rowHTML(o, mobile){
   var color = COLOR_BY_CAT[o.category];
   var meta = [o.city, o.district].filter(Boolean).map(escapeHtml).join(" &middot; ");
-  var km = (o.km !== undefined && isFinite(o.km)) ? o.km.toFixed(1) + " km" : "";
+  var km = (o.km !== undefined && isFinite(o.km)) ? o.km.toFixed(1) + " km radius" : "";
+  var driveHTML = "";
+  if (o.km !== undefined && isFinite(o.km)){
+    var cached = state.near ? drivingCache[o.code + ":" + state.near.lat.toFixed(4) + "," + state.near.lon.toFixed(4)] : null;
+    driveHTML = '<div class="km-drive" data-code="' + escapeHtml(o.code) + '">' +
+      (cached ? cached.km.toFixed(1) + " km driving" : "") + '</div>';
+  }
   if (mobile){
     return '<div class="m-row" data-code="' + escapeHtml(o.code) + '" role="button" tabindex="0">' +
       '<span class="pipm" style="background:' + color + '"></span>' +
       '<div><div class="nm">' + escapeHtml(o.name) + '</div>' +
       '<div class="mt">' + meta + '</div></div>' +
-      '<div class="km">' + km + '</div></div>';
+      '<div class="km">' + km + driveHTML + '</div></div>';
   }
   return '<div class="item" data-code="' + escapeHtml(o.code) + '" role="button" tabindex="0">' +
     '<span class="pip" style="background:' + color + '"></span>' +
     '<div><div class="nm">' + escapeHtml(o.name) + '</div>' +
     '<div class="meta">' + meta + '</div>' +
     '<div class="code">' + escapeHtml(o.code) + '</div></div>' +
-    '<div class="km">' + km + '</div></div>';
+    '<div class="km">' + km + driveHTML + '</div></div>';
 }
 
 function listHTML(mobile){
@@ -1875,8 +1896,15 @@ function listHTML(mobile){
       '<br><button class="' + (mobile ? '' : 'reset') + '" id="' + (mobile ? 'mEmptyReset' : 'emptyReset') + '" ' +
       (mobile ? '' : 'style="margin:14px auto 0;width:auto;padding:8px 18px"') + '>Reset filters</button></div>';
   }
+  var banner = "";
+  if (state.near){
+    banner = (mobile ? '<div class="m-more">' : '<div class="more">') +
+      '<button class="nearby-btn calc-driving-btn" type="button">Calculate driving distance for all ' + results.length.toLocaleString() + ' result' + (results.length === 1 ? "" : "s") + '</button>' +
+      '<div class="driving-result calc-driving-status"></div>' +
+    '</div>';
+  }
   var slice = results.slice(0, limit);
-  var html = slice.map(function(o){ return rowHTML(o, mobile); }).join("");
+  var html = banner + slice.map(function(o){ return rowHTML(o, mobile); }).join("");
   if (results.length > limit){
     var n = Math.min(step, results.length - limit);
     html += mobile
@@ -1929,9 +1957,9 @@ function facilitiesBlock(o){
   var chips = items.map(function(t){
     return '<span class="fac-chip on">&#10003; ' + escapeHtml(t) + '</span>';
   }).join("");
-  if (f.alli){
-    chips += '<span class="fac-chip on">&#10003; ' + escapeHtml(f.alli) + '</span>';
-  }
+  alliList(f).forEach(function(brand){
+    chips += '<span class="fac-chip on">&#10003; ' + escapeHtml(brand) + '</span>';
+  });
   if (!chips){
     return html + '<p class="pending-note">No Shop Stop, VIBE, R-95 facility or brand alliance recorded for this site.</p>';
   }
@@ -1976,7 +2004,13 @@ function detailHTML(o, mobile){
       '<div><dt>Financing</dt><dd>' + dash(o.finance) + '</dd></div>' +
       '<div><dt>Match confidence</dt><dd>' + dash(o.match_type) + '</dd></div>' +
       '<div><dt>Runner-up category</dt><dd>' + dash(o.runner_up) + '</dd></div>' +
-      ((o.km !== undefined && isFinite(o.km)) ? '<div><dt>Distance</dt><dd class="mono">' + o.km.toFixed(1) + ' km</dd></div>' : "") +
+      ((o.km !== undefined && isFinite(o.km)) ?
+        '<div><dt>Driving distance</dt><dd class="mono">' +
+          '<button class="driving-btn" type="button" data-code="' + escapeHtml(o.code) + '">Get driving distance</button>' +
+          '<span class="driving-result" id="driving-' + escapeHtml(o.code) + '"></span>' +
+        '</dd></div>' +
+        '<div><dt>Radius distance</dt><dd class="mono">' + o.km.toFixed(1) + ' km radius</dd></div>'
+      : "") +
       '<div><dt>Coordinates</dt><dd class="mono">' + (o.lat !== null ? o.lat.toFixed(5) + ", " + o.lon.toFixed(5) : "\u2014") + '</dd></div>' +
     '</dl>' +
     '<div class="sec-title">Location</div>' +
@@ -2018,7 +2052,7 @@ function detailHTML(o, mobile){
    corrections back to PSO.
    ===================================================================== */
 function editHTML(o, mobile){
-  var f = CARDS[String(o.code)] || { cards:false, shop:false, vibe:false, r95:false, alli:"" };
+  var f = CARDS[String(o.code)] || { cards:false, shop:false, vibe:false, r95:false, alli:[] };
   function opt(v){ return '<option' + (o.category === v ? ' selected' : '') + '>' + escapeHtml(v) + '</option>'; }
   function chk(id, on, label){
     return '<label class="ef-check"><input type="checkbox" data-ef="' + id + '"' + (on ? ' checked' : '') + '> ' + label + '</label>';
@@ -2073,7 +2107,7 @@ function editHTML(o, mobile){
       chk("vibe",  f.vibe,  "VIBE") +
       chk("r95",   f.r95,   "R-95") +
     '</div></div>' +
-    '<div class="ef"><label>Brand alliance / QSR</label><input data-ef="alli" value="' + escapeHtml(f.alli || "") + '" placeholder="e.g. Dunkin Donuts"></div>' +
+    '<div class="ef"><label>Brand alliance / QSR</label><input data-ef="alli" value="' + escapeHtml(alliList(f).join(", ")) + '" placeholder="e.g. Dunkin Donuts, CBTL"><p class="rubric-note">Separate multiple brands with a comma.</p></div>' +
 
     '<div class="ef-actions">' +
       '<button class="ef-cancel" data-efcancel="1">Cancel</button>' +
@@ -2155,17 +2189,15 @@ function saveEdits(code){
   o.atp = (val("atp") === "" || isNaN(atp)) ? null : atp;
   if (!isNaN(lat) && !isNaN(lon)){ o.lat = lat; o.lon = lon; }
 
-  if (!CARDS[String(o.code)]) CARDS[String(o.code)] = { cards:false, mid:"", shop:false, vibe:false, r95:false, alli:"" };
+  if (!CARDS[String(o.code)]) CARDS[String(o.code)] = { cards:false, mid:"", shop:false, vibe:false, r95:false, alli:[] };
   var f = CARDS[String(o.code)];
   f.cards = on("cards"); f.shop = on("shop"); f.vibe = on("vibe"); f.r95 = on("r95");
-  f.alli  = val("alli");
+  f.alli  = val("alli").split(",").map(function(s){ return s.trim(); }).filter(Boolean);
 
   // the marker follows the data
   ref.marker.setStyle({ fillColor: COLOR_BY_CAT[o.category] || "#999" });
+  ref.marker.category = o.category;
   if (o.lat !== null && o.lon !== null) ref.marker.setLatLng([o.lat, o.lon]);
-  if (oldCategory !== o.category && clusterGroups[oldCategory]){
-    clusterGroups[oldCategory].removeLayer(ref.marker);
-  }
 
   edited.add(String(o.code));
   refreshCategoryCounts();
@@ -2196,18 +2228,14 @@ function saveEdits(code){
    marker, cluster group and counts in step. */
 function applyServerCategory(ref, saved){
   var o = ref.outlet;
-  var previous = o.category;
   o.category = saved.category;
   o.runner_up = saved.runner_up;
   o.match_type = saved.match_type;
   o.category_source = saved.category_source;
   o.manual_category = saved.manual_category;
 
-  ensureClusterGroup(o.category);
-  if (previous !== o.category && clusterGroups[previous]){
-    clusterGroups[previous].removeLayer(ref.marker);
-  }
   ref.marker.setStyle({ fillColor: COLOR_BY_CAT[o.category] || "#999" });
+  ref.marker.category = o.category;
   refreshCategoryCounts();
   apply();
   if (state.selected !== null && String(state.selected) === String(o.code)) selectOutlet(o.code);
@@ -2227,7 +2255,7 @@ function exportEdits(){
     lines.push([o.code, o.name, o.category, o.city, o.district, o.province, o.sales_area,
                 o.atp, o.operated, o.finance, o.lat, o.lon, o.location,
                 f.cards ? "Y" : "N", f.shop ? "Y" : "N", f.vibe ? "Y" : "N",
-                f.r95 ? "Y" : "N", f.alli || ""].map(cell).join(","));
+                f.r95 ? "Y" : "N", alliList(f).join("; ")].map(cell).join(","));
   });
   var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
   var a = document.createElement("a");
@@ -2255,7 +2283,7 @@ function refreshFacilityCounts(){
     var f = CARDS[k];
     if (f.shop) totals.shop++;
     if (f.vibe) totals.vibe++;
-    if (f.alli) totals.alli++;
+    if (alliList(f).length) totals.alli++;
     if (f.cards) totals.cards++;
   });
   if ($("nShop"))  $("nShop").textContent  = totals.shop;
@@ -2646,6 +2674,153 @@ function fetchNearby(code, lat, lon, container, btn, radius){
     });
 }
 
+/* =====================================================================
+   DRIVING DISTANCE — OSRM's public demo router; no key needed. The
+   "near me" list itself keeps sorting by straight-line distance (cheap,
+   client-side); driving distance is filled in on request via two paths:
+   - single outlet, from the detail panel (osrmFetch / fetchDriving)
+   - the whole filtered result list at once, via OSRM's table (matrix)
+     endpoint, which returns distances for many destinations in a single
+     request (osrmTableFetch / calcAllDriving) — batched at
+     OSRM_TABLE_BATCH destinations per call, the largest that stays under
+     the public server's URL-length limit (tested: 400 is unreliable,
+     700+ returns HTTP 414), so even all ~1,000+ outlets resolve in a
+     handful of requests instead of one per outlet.
+   ===================================================================== */
+var OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving/";
+var OSRM_TABLE_URL = "https://router.project-osrm.org/table/v1/driving/";
+var OSRM_TABLE_BATCH = 300;
+var drivingCache = {}, drivingReqSeq = {};
+
+function osrmFetch(originLat, originLon, destLat, destLon){
+  var url = OSRM_ROUTE_URL + originLon + "," + originLat + ";" + destLon + "," + destLat + "?overview=false";
+  return fetch(url).then(function(res){
+    if (res.status === 429) throw new Error("busy");
+    if (!res.ok) throw new Error("http " + res.status);
+    return res.json();
+  }).then(function(data){
+    if (data.code !== "Ok" || !data.routes || !data.routes.length) throw new Error("no-route");
+    var route = data.routes[0];
+    return { km: route.distance / 1000, min: route.duration / 60 };
+  });
+}
+
+function fetchDriving(code, originLat, originLon, destLat, destLon, btn, resultEl){
+  var cacheKey = code + ":" + originLat.toFixed(4) + "," + originLon.toFixed(4);
+  var seq = (drivingReqSeq[code] || 0) + 1;
+  drivingReqSeq[code] = seq;
+  var current = function(){ return drivingReqSeq[code] === seq; };
+
+  if (drivingCache[cacheKey]){
+    var cached = drivingCache[cacheKey];
+    resultEl.className = "driving-result";
+    resultEl.textContent = cached.km.toFixed(1) + " km driving · ~" + Math.round(cached.min) + " min";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Routing…";
+  resultEl.className = "driving-result";
+  resultEl.textContent = "";
+
+  osrmFetch(originLat, originLon, destLat, destLon)
+    .then(function(result){
+      drivingCache[cacheKey] = result;
+      if (!current()) return;
+      resultEl.textContent = result.km.toFixed(1) + " km driving · ~" + Math.round(result.min) + " min";
+      btn.style.display = "none";
+    })
+    .catch(function(err){
+      if (!current()) return;
+      var msg = (err && err.message === "busy")
+        ? "Routing service is busy — try again shortly."
+        : "Couldn't get a driving route right now.";
+      resultEl.className = "driving-result err";
+      resultEl.textContent = msg;
+      btn.disabled = false;
+      btn.textContent = "Get driving distance";
+    });
+}
+
+function osrmTableFetch(originLat, originLon, destinations){
+  var coords = originLon + "," + originLat;
+  destinations.forEach(function(d){ coords += ";" + d.lon + "," + d.lat; });
+  var destIdx = destinations.map(function(_, i){ return i + 1; }).join(";");
+  var url = OSRM_TABLE_URL + coords + "?sources=0&destinations=" + destIdx + "&annotations=distance,duration";
+  return fetch(url).then(function(res){
+    if (res.status === 429) throw new Error("busy");
+    if (!res.ok) throw new Error("http " + res.status);
+    return res.json();
+  }).then(function(data){
+    if (data.code !== "Ok" || !data.distances || !data.distances[0]) throw new Error("no-table");
+    var distRow = data.distances[0], durRow = data.durations[0];
+    return destinations.map(function(_, i){
+      return (distRow[i] == null) ? null : { km: distRow[i] / 1000, min: durRow[i] / 60 };
+    });
+  });
+}
+
+function applyDrivingResult(code, result){
+  var cells = document.querySelectorAll('.km-drive[data-code="' + CSS.escape(String(code)) + '"]');
+  cells.forEach(function(el){ el.textContent = result ? (result.km.toFixed(1) + " km driving") : "route unavailable"; });
+}
+
+/* Routes every currently-filtered result (by straight-line distance order)
+   via the OSRM table endpoint, batched OSRM_TABLE_BATCH at a time — see
+   the header comment above for why batching makes "all of them" practical. */
+function calcAllDriving(){
+  if (!state.near) return;
+  var pending = results.filter(function(o){ return o.lat !== null && o.lon !== null; });
+  if (!pending.length) return;
+
+  var btns = document.querySelectorAll(".calc-driving-btn");
+  var statuses = document.querySelectorAll(".calc-driving-status");
+  function setStatus(text){ statuses.forEach(function(s){ s.textContent = text; }); }
+  btns.forEach(function(b){ b.disabled = true; });
+
+  var total = pending.length, done = 0;
+  setStatus("Routing 0 / " + total + "…");
+
+  var batches = [];
+  for (var i = 0; i < pending.length; i += OSRM_TABLE_BATCH){
+    batches.push(pending.slice(i, i + OSRM_TABLE_BATCH));
+  }
+
+  var chain = Promise.resolve();
+  batches.forEach(function(batch){
+    chain = chain.then(function(){
+      var need = batch.filter(function(o){
+        var cacheKey = o.code + ":" + state.near.lat.toFixed(4) + "," + state.near.lon.toFixed(4);
+        if (drivingCache[cacheKey]){
+          applyDrivingResult(o.code, drivingCache[cacheKey]);
+          done++;
+          return false;
+        }
+        return true;
+      });
+      if (!need.length){ setStatus("Routing " + done + " / " + total + "…"); return; }
+      return osrmTableFetch(state.near.lat, state.near.lon, need)
+        .then(function(resultsArr){
+          need.forEach(function(o, idx){
+            var cacheKey = o.code + ":" + state.near.lat.toFixed(4) + "," + state.near.lon.toFixed(4);
+            var r = resultsArr[idx];
+            if (r) drivingCache[cacheKey] = r;
+            applyDrivingResult(o.code, r);
+            done++;
+          });
+        })
+        .catch(function(){
+          need.forEach(function(o){ applyDrivingResult(o.code, null); done++; });
+        })
+        .then(function(){ setStatus("Routing " + done + " / " + total + "…"); });
+    });
+  });
+  chain.then(function(){
+    btns.forEach(function(b){ b.disabled = false; });
+    setStatus("Driving distance calculated for " + total.toLocaleString() + " result" + (total === 1 ? "" : "s") + ".");
+  });
+}
+
 /* one delegated listener for the whole nearby block, wherever it is rendered */
 document.addEventListener("click", function(e){
   var moreBtn = e.target.closest(".nearby-more");
@@ -2655,6 +2830,22 @@ document.addEventListener("click", function(e){
       var open = hidden.style.display !== "none";
       hidden.style.display = open ? "none" : "";
       moreBtn.textContent = open ? "+ " + hidden.children.length + " more" : "Show fewer";
+    }
+    return;
+  }
+
+  if (e.target.closest(".calc-driving-btn")){
+    calcAllDriving();
+    return;
+  }
+
+  var drivingBtn = e.target.closest(".driving-btn");
+  if (drivingBtn){
+    var dCode = drivingBtn.dataset.code;
+    var dRef = outletRef(dCode);
+    var resultEl = document.getElementById("driving-" + dCode);
+    if (dRef && resultEl && state.near && dRef.outlet.lat !== null && dRef.outlet.lon !== null){
+      fetchDriving(dCode, state.near.lat, state.near.lon, dRef.outlet.lat, dRef.outlet.lon, drivingBtn, resultEl);
     }
     return;
   }
@@ -2839,7 +3030,6 @@ $("mGeo").addEventListener("click", locate);
 /* ---------------- menu sheet ---------------- */
 function openMenu(){
   $("mMenuFilterTag").textContent = results.length.toLocaleString() + " shown";
-  $("mMenuEditTag").textContent = edited.size;
   $("mMenu").classList.add("on"); $("mScrim").classList.add("on");
 }
 function closeMenu(){ $("mMenu").classList.remove("on"); $("mScrim").classList.remove("on"); }
@@ -2951,7 +3141,6 @@ async function resolveCategory(prefix){
   COLOR_BY_CAT[name] = color; BG_BY_CAT[name] = bg;
   counts[name] = 0;
   state.activeCats[name] = true;
-  ensureClusterGroup(name);
   rebuildCategoryUI();
   return name;
 }
@@ -3087,7 +3276,7 @@ document.getElementById("addPumpForm").addEventListener("submit", async function
   }
 
   OUTLETS.push(newOutlet);
-  CARDS[String(code)] = { cards: false, mid: "", shop: false, vibe: false, r95: false, alli: "" };
+  CARDS[String(code)] = { cards: false, mid: "", shop: false, vibe: false, r95: false, alli: [] };
   addOutletToMap(newOutlet);
   ensureProvinceOption(newOutlet.province);
   refreshCategoryCounts();
@@ -3159,7 +3348,7 @@ document.getElementById("remove-confirm-btn").addEventListener("click", async fu
   var refIdx = markerRefs.findIndex(function(r){ return r.outlet.code === code; });
   if (refIdx !== -1){
     var ref = markerRefs[refIdx];
-    Object.keys(clusterGroups).forEach(function(k){ clusterGroups[k].removeLayer(ref.marker); });
+    clusterGroup.removeLayer(ref.marker);
     markerRefs.splice(refIdx, 1);
   }
   if (state.selected === code) state.selected = null;
@@ -3405,8 +3594,48 @@ function openColumnsModal(){
   if (!sheetToolsReady()){ toast("Column settings need the server running"); return; }
   clearStatus("columns-status");
   $("columns-password").value = "";
+  $("new-column-name").value = "";
+  $("new-column-type").value = "string";
   renderColumnsList();
   openModal("columnsModal");
+}
+
+/* Admin-only: appends a brand new column to the schema (server-side, via
+   /api/schema/add-column) so it shows up in every export from then on and
+   an import can fill it in — for a new data category the app didn't
+   originally track, without touching the source code. */
+function addNewColumn(){
+  var password = $("columns-password").value;
+  var column = $("new-column-name").value.trim();
+  var type = $("new-column-type").value;
+  if (!password){ setStatus("columns-status", "err", "Enter the admin password."); return; }
+  if (!column){ setStatus("columns-status", "err", "Enter a name for the new column."); return; }
+
+  var btn = $("add-column-btn");
+  btn.disabled = true;
+  setStatus("columns-status", "", "Adding…");
+
+  fetch("/api/schema/add-column", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: password, column: column, type: type })
+  }).then(function(res){
+    return res.json().then(function(payload){ return { ok: res.ok, payload: payload }; });
+  }).then(function(out){
+    btn.disabled = false;
+    if (!out.ok){ setStatus("columns-status", "err", escapeHtml(out.payload.error || "Could not add the column.")); return; }
+    SCHEMA = out.payload;
+    $("new-column-name").value = "";
+    $("new-column-type").value = "string";
+    renderColumnsList();
+    renderImportColumnLists();
+    updateExportScopeNote();
+    setStatus("columns-status", "ok", "Added column “" + escapeHtml(column) + "”.");
+    toast("Column added");
+  }).catch(function(e){
+    btn.disabled = false;
+    setStatus("columns-status", "err", escapeHtml(e.message || "The save failed."));
+  });
 }
 
 function saveColumns(){
@@ -3532,6 +3761,7 @@ $("export-whatsapp").addEventListener("click", shareSheetToWhatsApp);
 $("import-submit").addEventListener("click", submitImport);
 $("btn-edit-columns").addEventListener("click", openColumnsModal);
 $("columns-save").addEventListener("click", saveColumns);
+$("add-column-btn").addEventListener("click", addNewColumn);
 
 if ($("mMenuImport")) $("mMenuImport").addEventListener("click", function(){ closeMenu(); openImportModal(); });
 if ($("mMenuExportEdits")) $("mMenuExportEdits").addEventListener("click", function(){ closeMenu(); exportEdits(); });
