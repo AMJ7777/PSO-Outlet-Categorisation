@@ -31,6 +31,11 @@ const CATEGORIES_PATH = path.join(DATA_DIR, 'categories.json');
 const FACILITIES_PATH = path.join(DATA_DIR, 'facilities.json');
 const COLUMN_CONFIG_PATH = path.join(DATA_DIR, 'column-config.json');
 const CUSTOM_COLUMNS_PATH = path.join(DATA_DIR, 'custom-columns.json');
+/* Fixed baseline for the admin "reset to initial state" action — always
+   read from local disk (committed to the repo), regardless of which data
+   store (local files or Supabase) is currently active. */
+const OUTLETS_INITIAL_PATH = path.join(DATA_DIR, 'outlets.initial.json');
+const FACILITIES_INITIAL_PATH = path.join(DATA_DIR, 'facilities.initial.json');
 
 /* The pump workbook is read once at boot and kept in memory — it is the
    source of the categorisation rubric and of the sheet's column names. */
@@ -175,9 +180,14 @@ async function handleGetOutlets(req, res) {
 }
 
 async function handleAddOutlet(req, res) {
-  let newOutlet;
-  try { newOutlet = await readBody(req); }
+  let body;
+  try { body = await readBody(req); }
   catch (e) { return sendJson(res, 400, { error: 'Invalid JSON body.' }); }
+
+  if (!isAdmin(body)) {
+    return sendJson(res, 401, { error: 'Incorrect admin password. The pump was not added.' });
+  }
+  const newOutlet = body && body.outlet;
 
   if (!newOutlet || !newOutlet.code || !newOutlet.name) {
     return sendJson(res, 400, { error: 'Outlet code and name are required.' });
@@ -207,9 +217,14 @@ async function handleUpdateOutlet(req, res, code) {
   const numCode = Number(code);
   if (isNaN(numCode)) return sendJson(res, 400, { error: 'Invalid outlet code.' });
 
-  let updatedData;
-  try { updatedData = await readBody(req); }
+  let body;
+  try { body = await readBody(req); }
   catch (e) { return sendJson(res, 400, { error: 'Invalid JSON body.' }); }
+
+  if (!isAdmin(body)) {
+    return sendJson(res, 401, { error: 'Incorrect admin password. The edit was not saved.' });
+  }
+  const updatedData = (body && body.outlet) || {};
 
   try {
     const outlets = await readJson(OUTLETS_PATH);
@@ -245,6 +260,14 @@ async function handleUpdateOutlet(req, res, code) {
 async function handleDeleteOutlet(req, res, code) {
   const numCode = Number(code);
   if (isNaN(numCode)) return sendJson(res, 400, { error: 'Invalid outlet code.' });
+
+  let body;
+  try { body = await readBody(req); }
+  catch (e) { return sendJson(res, 400, { error: 'Invalid JSON body.' }); }
+
+  if (!isAdmin(body)) {
+    return sendJson(res, 401, { error: 'Incorrect admin password. The pump was not removed.' });
+  }
 
   try {
     const outlets = await readJson(OUTLETS_PATH);
@@ -283,6 +306,10 @@ async function handleAddCategory(req, res) {
   try { body = await readBody(req); }
   catch (e) { return sendJson(res, 400, { error: 'Invalid JSON body.' }); }
 
+  if (!isAdmin(body)) {
+    return sendJson(res, 401, { error: 'Incorrect admin password. The category was not added.' });
+  }
+
   const { category, color, bg } = body;
   if (!category || !color) return sendJson(res, 400, { error: 'Category name and color are required.' });
 
@@ -308,9 +335,14 @@ async function handleGetFacilities(req, res) {
 }
 
 async function handleUpdateFacility(req, res, code) {
-  let updatedData;
-  try { updatedData = await readBody(req); }
+  let body;
+  try { body = await readBody(req); }
   catch (e) { return sendJson(res, 400, { error: 'Invalid JSON body.' }); }
+
+  if (!isAdmin(body)) {
+    return sendJson(res, 401, { error: 'Incorrect admin password. The edit was not saved.' });
+  }
+  const updatedData = (body && body.facility) || {};
 
   try {
     const facilities = await readJson(FACILITIES_PATH);
@@ -329,6 +361,43 @@ async function handleUpdateFacility(req, res, code) {
    --------------------------------------------------------------------- */
 function isAdmin(body) {
   return !!body && typeof body.password === 'string' && body.password === ADMIN_PASSWORD;
+}
+
+/** Checks the admin password with no other side effect — backs the app's "enter admin mode" toggle. */
+async function handleAdminVerify(req, res) {
+  let body;
+  try { body = await readBody(req); }
+  catch (e) { return sendJson(res, 400, { error: 'Invalid JSON body.' }); }
+
+  if (!isAdmin(body)) return sendJson(res, 401, { error: 'Incorrect admin password.' });
+  sendJson(res, 200, { ok: true });
+}
+
+/**
+ * Admin-only. Restores outlets and facilities to the snapshot taken when
+ * this reset feature shipped (OUTLETS_INITIAL_PATH / FACILITIES_INITIAL_PATH,
+ * committed to the repo, always read from local disk regardless of which
+ * store is active) — discards every add/edit/remove/import made since.
+ */
+async function handleAdminReset(req, res) {
+  let body;
+  try { body = await readBody(req); }
+  catch (e) { return sendJson(res, 400, { error: 'Invalid JSON body.' }); }
+
+  if (!isAdmin(body)) {
+    return sendJson(res, 401, { error: 'Incorrect admin password. Nothing was reset.' });
+  }
+
+  try {
+    const outlets = JSON.parse(await fs.promises.readFile(OUTLETS_INITIAL_PATH, 'utf8'));
+    const facilities = JSON.parse(await fs.promises.readFile(FACILITIES_INITIAL_PATH, 'utf8'));
+    await writeJson(OUTLETS_PATH, outlets);
+    await writeJson(FACILITIES_PATH, facilities);
+    sendJson(res, 200, { success: true, outlets: outlets.length });
+  } catch (e) {
+    console.error('Error resetting to the initial state:', e);
+    sendJson(res, 500, { error: 'Failed to reset to the initial state.' });
+  }
 }
 
 /** Rows for the export, in schema order, optionally limited to some codes. */
@@ -700,6 +769,8 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/schema' && method === 'GET') return await handleGetSchema(req, res);
     if (pathname === '/api/schema/columns' && method === 'POST') return await handleUpdateSchemaColumns(req, res);
     if (pathname === '/api/schema/add-column' && method === 'POST') return await handleAddSchemaColumn(req, res);
+    if (pathname === '/api/admin/verify' && method === 'POST') return await handleAdminVerify(req, res);
+    if (pathname === '/api/admin/reset' && method === 'POST') return await handleAdminReset(req, res);
     if (pathname === '/api/export.xlsx' && (method === 'GET' || method === 'POST')) return await handleExportXlsx(req, res, url);
     if (pathname === '/api/export.csv' && (method === 'GET' || method === 'POST')) return await handleExportCsv(req, res, url);
     if (pathname === '/api/import' && method === 'POST') return await handleImport(req, res);
