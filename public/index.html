@@ -1020,6 +1020,16 @@ button,input,select{font:inherit;color:inherit}
 .mgmt-btn.remove:hover{background:#fdeceb}
 .mgmt-btn.sheet{background:var(--paper);border-color:var(--line);color:var(--ink-2)}
 .mgmt-btn.sheet:hover{background:var(--wash);border-color:var(--pso-blue);color:var(--pso-blue)}
+.mgmt-btn.reset-admin{background:var(--paper);border-color:#c17a1f;color:#c17a1f}
+.mgmt-btn.reset-admin:hover{background:#fdf3e3}
+.admin-gate{margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft)}
+.admin-on-btn{width:100%;padding:8px 10px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;
+  border:1px dashed var(--line);background:var(--paper);color:var(--ink-3)}
+.admin-on-btn:hover{border-color:var(--pso-blue);color:var(--pso-blue)}
+.admin-status{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;
+  color:#1a7a4c;background:#e7f6ee;border:1px solid #bfe6d1;border-radius:3px;padding:8px 10px}
+.admin-status button{border:0;background:none;color:#1a7a4c;font-weight:600;font-size:11.5px;cursor:pointer;
+  text-decoration:underline;padding:0}
 
 .sheet-actions{display:flex;flex-direction:column;gap:9px;margin:14px 0 4px}
 .sheet-act{display:flex;align-items:center;justify-content:center;gap:9px;padding:12px 14px;border-radius:4px;
@@ -1176,10 +1186,20 @@ button,input,select{font:inherit;color:inherit}
     <div class="grp">
       <h3>Manage outlets</h3>
       <div class="mgmt-grid">
+        <button class="mgmt-btn sheet" id="btnExportSheet" type="button">Export outlet sheet</button>
+      </div>
+      <div class="mgmt-grid" id="adminOnlyRail" style="display:none;margin-top:8px">
         <button class="mgmt-btn add" id="btnAddPump" type="button">+ Add new pump</button>
         <button class="mgmt-btn remove" id="btnRemovePump" type="button">Remove pump</button>
-        <button class="mgmt-btn sheet" id="btnExportSheet" type="button">Export outlet sheet</button>
         <button class="mgmt-btn sheet" id="btnImportSheet" type="button">Import outlet sheet</button>
+        <button class="mgmt-btn reset-admin" id="btnAdminReset" type="button">Reset to initial state</button>
+      </div>
+      <div class="admin-gate">
+        <button class="admin-on-btn" id="btnAdminEnter" type="button">Enter admin mode</button>
+        <div class="admin-status" id="adminStatus" style="display:none">
+          <span>Admin mode is on</span>
+          <button id="btnAdminExit" type="button">Log out</button>
+        </div>
       </div>
     </div>
 
@@ -1244,6 +1264,12 @@ button,input,select{font:inherit;color:inherit}
         <div class="sec-title" style="margin-top:16px">Categorisation signals</div>
         <p class="ef-note" style="margin-top:0">Optional site detail recorded against the pump workbook's rubric. The category itself comes from the Pumps sheet.</p>
         <div id="add-rubric"></div>
+
+        <p class="ef-note" style="color:#c0392b">&#9888; This adds the pump for everyone using the app.</p>
+        <div class="ef"><label>Admin password *</label>
+          <input type="password" id="add-password" autocomplete="current-password" placeholder="Required to add">
+        </div>
+        <div id="add-status" class="sheet-status" style="display:none"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="ef-cancel" data-close="addModal">Cancel</button>
@@ -1264,12 +1290,50 @@ button,input,select{font:inherit;color:inherit}
           <div class="title" id="remove-title">PUMP NAME</div>
           <div class="desc" id="remove-desc"></div>
         </div>
-        <p class="ef-note" style="color:#c0392b">&#9888; This permanently removes the pump from the system.</p>
+        <p class="ef-note" style="color:#c0392b">&#9888; This permanently removes the pump from the system for everyone using the app. Cannot be undone.</p>
+        <div class="ef"><label>Admin password *</label>
+          <input type="password" id="remove-password" autocomplete="current-password" placeholder="Required to remove">
+        </div>
+        <div id="remove-status" class="sheet-status" style="display:none"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button type="button" class="ef-cancel" data-close="removeModal">Cancel</button>
       <button type="button" class="ef-save" id="remove-confirm-btn" style="background:#c0392b" disabled>Yes, remove pump</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="adminGateModal">
+  <div class="modal-window" style="max-width:400px">
+    <div class="modal-header"><h2>Enter admin mode</h2><span class="modal-close" data-close="adminGateModal">&times;</span></div>
+    <div class="modal-body">
+      <p class="ef-note" style="margin-top:0">Admin mode shows the add / remove / edit / import controls. You'll still be asked for the password again each time you actually make a change.</p>
+      <div class="ef"><label>Admin password *</label>
+        <input type="password" id="admin-gate-password" autocomplete="current-password" placeholder="Required">
+      </div>
+      <div id="admin-gate-status" class="sheet-status" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="ef-cancel" data-close="adminGateModal">Cancel</button>
+      <button type="button" class="ef-save" id="admin-gate-submit">Enter admin mode</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="adminResetModal">
+  <div class="modal-window" style="max-width:420px">
+    <div class="modal-header" style="background:#8a2a20"><h2>Reset to initial state</h2><span class="modal-close" data-close="adminResetModal">&times;</span></div>
+    <div class="modal-body">
+      <p class="ef-note" style="margin-top:0;color:#c0392b">&#9888; This permanently discards every add, edit, remove and import made since this reset feature shipped, and restores all 1,052 outlets to that original state &mdash; for everyone using the app. This cannot be undone.</p>
+      <div class="ef"><label>Admin password *</label>
+        <input type="password" id="admin-reset-password" autocomplete="current-password" placeholder="Required to reset">
+      </div>
+      <div id="admin-reset-status" class="sheet-status" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="ef-cancel" data-close="adminResetModal">Cancel</button>
+      <button type="button" class="ef-save" id="admin-reset-submit" style="background:#c0392b">Yes, reset everything</button>
     </div>
   </div>
 </div>
@@ -1411,12 +1475,17 @@ button,input,select{font:inherit;color:inherit}
   <nav class="m-menu" id="mMenu">
     <h4>North Region Site Map</h4>
     <button id="mMenuFilters"><span class="gi">&#9776;</span> Filters &amp; categories <span class="tag" id="mMenuFilterTag"></span></button>
-    <button id="mMenuAdd"><span class="gi">+</span> Add new pump</button>
-    <button id="mMenuRemove"><span class="gi">&minus;</span> Remove a pump</button>
     <button id="mMenuLegend"><span class="gi">&#9679;</span> Show / hide legend</button>
     <button id="mMenuExport"><span class="gi">&#8681;</span> Export outlet sheet</button>
-    <button id="mMenuImport"><span class="gi">&#8679;</span> Import outlet sheet</button>
     <button id="mMenuReset"><span class="gi">&#8635;</span> Reset all filters</button>
+    <div id="mMenuAdminOnly" style="display:none">
+      <button id="mMenuAdd"><span class="gi">+</span> Add new pump</button>
+      <button id="mMenuRemove"><span class="gi">&minus;</span> Remove a pump</button>
+      <button id="mMenuImport"><span class="gi">&#8679;</span> Import outlet sheet</button>
+      <button id="mMenuAdminReset"><span class="gi">&#9888;</span> Reset to initial state</button>
+    </div>
+    <button id="mMenuAdminEnter">Enter admin mode</button>
+    <button id="mMenuAdminExit" style="display:none">Log out of admin mode</button>
     <button id="mMenuClose"><span class="gi">&times;</span> Close</button>
   </nav>
 
@@ -1502,6 +1571,16 @@ if (window.location.protocol !== "file:") {
 
 var COLOR_BY_CAT = {}, BG_BY_CAT = {};
 CATS.forEach(function(c){ COLOR_BY_CAT[c.key] = c.color; BG_BY_CAT[c.key] = c.bg; });
+
+/* Admin mode only controls whether Add/Edit/Remove/Reset UI is shown — it
+   is never trusted for security. Every mutating request still carries a
+   password the server checks independently (isAdmin() in server.js), so
+   flipping this flag by hand in devtools reveals buttons but can't
+   actually save anything without the real password. Persists across
+   reloads per the "persist until logged out" choice; cleared by
+   setAdminMode(false). */
+var ADMIN_MODE = false;
+try { ADMIN_MODE = localStorage.getItem("pso-admin-mode") === "1"; } catch (e) { /* private browsing, etc. */ }
 
 var state = {
   activeCats: {},
@@ -1995,7 +2074,7 @@ function detailHTML(o, mobile){
       '<span class="cat-badge" style="background:' + bg + ';color:' + color + '">' + escapeHtml(o.category) + '</span>' +
       (o.manual_category ? '<span class="cat-source">Set by hand</span>'
         : o.category_source === "division" ? '<span class="cat-source">Division</span>' : "") +
-      '<button class="edit-btn" data-edit="' + escapeHtml(o.code) + '">Edit details</button>' +
+      (ADMIN_MODE ? '<button class="edit-btn" data-edit="' + escapeHtml(o.code) + '">Edit details</button>' : "") +
     '</div>' +
     (mobile ? '<h2>' : '<h3>') + escapeHtml(o.name) +
       (edited.has(String(o.code)) ? '<span class="edited-tag">EDITED</span>' : '') +
@@ -2110,6 +2189,10 @@ function editHTML(o, mobile){
     '</div></div>' +
     '<div class="ef"><label>Brand alliance / QSR</label><input data-ef="alli" value="' + escapeHtml(alliList(f).join(", ")) + '" placeholder="e.g. Dunkin Donuts, CBTL"><p class="rubric-note">Separate multiple brands with a comma.</p></div>' +
 
+    '<div class="ef"><label>Admin password *</label>' +
+      '<input type="password" class="ef-save-password" autocomplete="current-password" placeholder="Required to save">' +
+    '</div>' +
+    '<div class="ef-save-status sheet-status" style="display:none"></div>' +
     '<div class="ef-actions">' +
       '<button class="ef-cancel" data-efcancel="1">Cancel</button>' +
       '<button class="ef-save" data-efsave="' + escapeHtml(o.code) + '">Save changes</button>' +
@@ -2146,6 +2229,14 @@ function saveEdits(code){
   function on(k){
     var el = scope.querySelector('[data-ef="' + k + '"]');
     return !!(el && el.checked);
+  }
+
+  var passwordEl = scope.querySelector(".ef-save-password");
+  var password = passwordEl ? passwordEl.value : "";
+  var statusEl = scope.querySelector(".ef-save-status");
+  if (!password){
+    if (statusEl){ statusEl.className = "ef-save-status sheet-status err"; statusEl.textContent = "Enter the admin password."; statusEl.style.display = ""; }
+    return;
   }
 
   var lat = parseFloat(val("lat")), lon = parseFloat(val("lon"));
@@ -2208,8 +2299,10 @@ function saveEdits(code){
 
   if (window.location.protocol !== "file:") {
     fetch('/api/outlets/' + encodeURIComponent(o.code), {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o)
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: password, outlet: o })
     }).then(function(res){
+      if (res.status === 401){ toast("Not saved to the server — wrong admin password."); return null; }
       return res.ok ? res.json() : null;
     }).then(function(saved){
       // the server re-scores the category from the signals; adopt its answer
@@ -2218,7 +2311,10 @@ function saveEdits(code){
       toast("Category re-scored: " + saved.category);
     }).catch(function(e){ console.warn('Saving outlet edit to server failed (offline?):', e); });
     fetch('/api/facilities/' + encodeURIComponent(o.code), {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f)
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: password, facility: f })
+    }).then(function(res){
+      if (res.status === 401) toast("Not saved to the server — wrong admin password.");
     }).catch(function(e){ console.warn('Saving facility edit to server failed (offline?):', e); });
   }
 }
@@ -3124,7 +3220,7 @@ function populateCategorySelect(id){
   if (current && CATS.some(function(c){ return c.key === current; })) sel.value = current;
 }
 
-async function resolveCategory(prefix){
+async function resolveCategory(prefix, password){
   var sel = document.getElementById(prefix + "-category");
   if (sel.value !== "__CUSTOM__") return sel.value;
 
@@ -3140,7 +3236,7 @@ async function resolveCategory(prefix){
     try {
       await fetch('/api/categories', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: name, color: color, bg: bg })
+        body: JSON.stringify({ password: password, category: name, color: color, bg: bg })
       });
     } catch (e) { console.warn('Saving category to server failed (offline?):', e); }
   }
@@ -3200,10 +3296,106 @@ function stopMapPicking(){
 }
 document.getElementById("add-map-pick-btn").addEventListener("click", startMapPicking);
 
+/* =====================================================================
+   ADMIN MODE — controls whether Add/Edit/Remove/Reset are shown at all.
+   The password itself is only ever checked server-side (isAdmin() in
+   server.js) on the specific request that needs it; this flag is never
+   sent anywhere and never substitutes for it.
+   ===================================================================== */
+function applyAdminModeUI(){
+  var rail = $("adminOnlyRail"), status = $("adminStatus"), enterBtn = $("btnAdminEnter");
+  if (rail) rail.style.display = ADMIN_MODE ? "" : "none";
+  if (status) status.style.display = ADMIN_MODE ? "" : "none";
+  if (enterBtn) enterBtn.style.display = ADMIN_MODE ? "none" : "";
+
+  var mAdminOnly = $("mMenuAdminOnly"), mEnter = $("mMenuAdminEnter"), mExit = $("mMenuAdminExit");
+  if (mAdminOnly) mAdminOnly.style.display = ADMIN_MODE ? "" : "none";
+  if (mEnter) mEnter.style.display = ADMIN_MODE ? "none" : "";
+  if (mExit) mExit.style.display = ADMIN_MODE ? "" : "none";
+
+  if (state.selected) selectOutlet(state.selected); // refresh Edit details visibility
+}
+function setAdminMode(on){
+  ADMIN_MODE = on;
+  try {
+    if (on) localStorage.setItem("pso-admin-mode", "1");
+    else localStorage.removeItem("pso-admin-mode");
+  } catch (e) { /* private browsing, etc. */ }
+  applyAdminModeUI();
+}
+applyAdminModeUI();
+
+function openAdminGate(){
+  $("admin-gate-password").value = "";
+  clearStatus("admin-gate-status");
+  openModal("adminGateModal");
+}
+function submitAdminGate(){
+  var password = $("admin-gate-password").value;
+  if (!password){ setStatus("admin-gate-status", "err", "Enter the admin password."); return; }
+  var btn = $("admin-gate-submit");
+  btn.disabled = true;
+  setStatus("admin-gate-status", "", "Checking…");
+  fetch("/api/admin/verify", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: password })
+  }).then(function(res){
+    return res.json().then(function(payload){ return { ok: res.ok, payload: payload }; });
+  }).then(function(out){
+    btn.disabled = false;
+    if (!out.ok){ setStatus("admin-gate-status", "err", escapeHtml(out.payload.error || "Incorrect password.")); return; }
+    setAdminMode(true);
+    closeModal("adminGateModal");
+    toast("Admin mode on");
+  }).catch(function(e){
+    btn.disabled = false;
+    setStatus("admin-gate-status", "err", escapeHtml(e.message || "Could not reach the server."));
+  });
+}
+if ($("btnAdminEnter")) $("btnAdminEnter").addEventListener("click", openAdminGate);
+if ($("btnAdminExit")) $("btnAdminExit").addEventListener("click", function(){ setAdminMode(false); toast("Logged out of admin mode"); });
+if ($("mMenuAdminEnter")) $("mMenuAdminEnter").addEventListener("click", function(){ closeMenu(); openAdminGate(); });
+if ($("mMenuAdminExit")) $("mMenuAdminExit").addEventListener("click", function(){ closeMenu(); setAdminMode(false); toast("Logged out of admin mode"); });
+$("admin-gate-submit").addEventListener("click", submitAdminGate);
+
+function openAdminResetModal(){
+  $("admin-reset-password").value = "";
+  clearStatus("admin-reset-status");
+  openModal("adminResetModal");
+}
+function submitAdminReset(){
+  var password = $("admin-reset-password").value;
+  if (!password){ setStatus("admin-reset-status", "err", "Enter the admin password."); return; }
+  var btn = $("admin-reset-submit");
+  btn.disabled = true;
+  setStatus("admin-reset-status", "", "Resetting…");
+  fetch("/api/admin/reset", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: password })
+  }).then(function(res){
+    return res.json().then(function(payload){ return { ok: res.ok, payload: payload }; });
+  }).then(function(out){
+    if (!out.ok){
+      btn.disabled = false;
+      setStatus("admin-reset-status", "err", escapeHtml(out.payload.error || "Reset failed."));
+      return;
+    }
+    setStatus("admin-reset-status", "ok", "Reset — reloading…");
+    setTimeout(function(){ window.location.reload(); }, 600);
+  }).catch(function(e){
+    btn.disabled = false;
+    setStatus("admin-reset-status", "err", escapeHtml(e.message || "Could not reach the server."));
+  });
+}
+if ($("btnAdminReset")) $("btnAdminReset").addEventListener("click", openAdminResetModal);
+if ($("mMenuAdminReset")) $("mMenuAdminReset").addEventListener("click", function(){ closeMenu(); openAdminResetModal(); });
+$("admin-reset-submit").addEventListener("click", submitAdminReset);
+
 /* ---- open the add / remove modals from the rail and mobile menu ---- */
 function openAddModal(){
   document.getElementById("addPumpForm").reset();
   document.getElementById("add-custom-cat-row").style.display = "none";
+  clearStatus("add-status");
   populateCategorySelect("add-category");
   document.getElementById("add-rubric").innerHTML = rubricFields().map(function(f){
     return '<div class="ef"><label>' + escapeHtml(f.column) + '</label>' +
@@ -3216,6 +3408,8 @@ function openRemoveModal(){
   document.getElementById("remove-results").style.display = "none";
   document.getElementById("remove-details").style.display = "none";
   document.getElementById("remove-confirm-btn").disabled = true;
+  document.getElementById("remove-password").value = "";
+  clearStatus("remove-status");
   outletToRemove = null;
   openModal("removeModal");
 }
@@ -3227,6 +3421,9 @@ if ($("mMenuRemove")) $("mMenuRemove").addEventListener("click", function(){ clo
 /* ---- add pump submit ---- */
 document.getElementById("addPumpForm").addEventListener("submit", async function(e){
   e.preventDefault();
+
+  var password = mval("add-password");
+  if (!password){ setStatus("add-status", "err", "Enter the admin password."); return; }
 
   var code = Number(mval("add-code"));
   if (!code){ alert("Please enter a valid outlet code."); return; }
@@ -3240,7 +3437,7 @@ document.getElementById("addPumpForm").addEventListener("submit", async function
   if (!mval("add-name")){ alert("Please enter a pump name."); return; }
   if (!mval("add-location")){ alert("Please enter a location address."); return; }
 
-  var categoryVal = await resolveCategory("add");
+  var categoryVal = await resolveCategory("add", password);
   if (!categoryVal) return;
 
   var atpVal = mval("add-atp");
@@ -3271,16 +3468,27 @@ document.getElementById("addPumpForm").addEventListener("submit", async function
   newOutlet.manual_category = true;
   newOutlet.category_source = "manual";
 
+  var submitBtn = e.target.querySelector('button[type="submit"]');
+
   if (window.location.protocol !== "file:") {
+    if (submitBtn) submitBtn.disabled = true;
+    setStatus("add-status", "", "Adding…");
     try {
       var res = await fetch('/api/outlets', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newOutlet)
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password, outlet: newOutlet })
       });
       if (!res.ok) {
         var err = await res.json().catch(function(){ return {}; });
-        alert(err.error || "The server rejected this pump. It has still been added locally.");
+        if (submitBtn) submitBtn.disabled = false;
+        setStatus("add-status", "err", escapeHtml(err.error || "The server rejected this pump."));
+        return; // wrong password (or another real rejection) — nothing is added
       }
-    } catch (err) { console.warn('Adding outlet to server failed (offline?):', err); }
+    } catch (err) {
+      console.warn('Adding outlet to server failed (offline?):', err);
+      // network/offline, not a rejection — fall through and keep it locally
+    }
+    if (submitBtn) submitBtn.disabled = false;
   }
 
   OUTLETS.push(newOutlet);
@@ -3342,11 +3550,29 @@ document.getElementById("remove-confirm-btn").addEventListener("click", async fu
   var code = outletToRemove.code;
   var name = outletToRemove.name;
 
+  var password = $("remove-password").value;
+  if (!password){ setStatus("remove-status", "err", "Enter the admin password."); return; }
+
+  var btn = this;
   if (window.location.protocol !== "file:") {
+    btn.disabled = true;
+    setStatus("remove-status", "", "Removing…");
     try {
-      var res = await fetch('/api/outlets/' + encodeURIComponent(code), { method: 'DELETE' });
-      if (!res.ok) console.warn('Server responded with an error deleting the outlet.');
-    } catch (e) { console.warn('Deleting outlet from server failed (offline?):', e); }
+      var res = await fetch('/api/outlets/' + encodeURIComponent(code), {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password })
+      });
+      if (!res.ok) {
+        var err = await res.json().catch(function(){ return {}; });
+        btn.disabled = false;
+        setStatus("remove-status", "err", escapeHtml(err.error || "The server rejected this."));
+        return; // wrong password (or another real rejection) — nothing is removed
+      }
+    } catch (e) {
+      console.warn('Deleting outlet from server failed (offline?):', e);
+      // network/offline, not a rejection — fall through and remove locally
+    }
+    btn.disabled = false;
   }
 
   var idx = OUTLETS.findIndex(function(o){ return o.code === code; });
