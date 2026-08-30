@@ -1060,6 +1060,7 @@ button,input,select{font:inherit;color:inherit}
 .col-add-row select{padding:8px 9px;border:1px solid var(--line);border-radius:4px;background:var(--paper);font-size:12.5px}
 
 .rubric-note{font-size:11.5px;color:var(--ink-3);margin:2px 0 0}
+.rubric-combo{display:flex;flex-direction:column;gap:5px}
 .cat-source{display:inline-block;margin-left:7px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
   color:var(--ink-3);border:1px solid var(--line);border-radius:3px;padding:2px 6px;vertical-align:middle}
 .m-drawer-body .mgmt-grid{padding:0 16px 10px}
@@ -1229,8 +1230,8 @@ button,input,select{font:inherit;color:inherit}
           <div class="ef"><label>Financing</label><input id="add-finance" placeholder="e.g. Dealer Financed - A (DFA)"></div>
         </div>
         <div class="ef-row2">
-          <div class="ef"><label>Latitude *</label><input required type="number" step="any" id="add-lat" placeholder="e.g. 33.72"></div>
-          <div class="ef"><label>Longitude *</label><input required type="number" step="any" id="add-lon" placeholder="e.g. 73.09"></div>
+          <div class="ef"><label>Latitude *</label><input required type="number" step="any" id="add-lat" placeholder="e.g. 33.72142"></div>
+          <div class="ef"><label>Longitude *</label><input required type="number" step="any" id="add-lon" placeholder="e.g. 73.05961"></div>
         </div>
         <button type="button" class="map-pick-btn" id="add-map-pick-btn">&#128205; Mark location on map</button>
         <div class="ef"><label>Old PSO tag</label><input id="add-old-tag" placeholder="Previous tag, if any"></div>
@@ -1570,19 +1571,24 @@ function rubricChoices(field){
   return (SCHEMA && SCHEMA.rubricChoices && SCHEMA.rubricChoices[field]) || [];
 }
 
-/* A signal picker limited to the workbook's DropdownLists values. Any value
-   already on the outlet is kept as an option even if the list has moved on. */
+/* A signal picker: choose from the workbook's DropdownLists values, or type
+   your own. Picking a dropdown option just pre-fills the text box below it —
+   that text box is the actual value (data-ef/id lands there, unchanged from
+   before), so it stays blank ("not recorded") unless something is typed or
+   picked, keeping this whole block optional. */
 function rubricSelectHTML(field, current, idAttr){
   var value = (current === null || current === undefined) ? "" : String(current);
   var choices = rubricChoices(field).slice();
-  if (value !== "" && choices.indexOf(value) === -1) choices.unshift(value);
-  return '<select ' + (idAttr ? 'id="' + idAttr + '"' : 'data-ef="' + field + '"') + '>' +
-    '<option value="">— not recorded —</option>' +
-    choices.map(function(c){
-      return '<option value="' + escapeHtml(c) + '"' + (c === value ? ' selected' : '') + '>' +
-        escapeHtml(c) + '</option>';
-    }).join("") +
-  '</select>';
+  return '<div class="rubric-combo">' +
+    '<select class="rubric-pick">' +
+      '<option value="">Choose from list…</option>' +
+      choices.map(function(c){
+        return '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>';
+      }).join("") +
+    '</select>' +
+    '<input type="text" class="rubric-typed" ' + (idAttr ? 'id="' + idAttr + '"' : 'data-ef="' + field + '"') +
+      ' value="' + escapeHtml(value) + '" placeholder="Not recorded — pick above, or type your own">' +
+  '</div>';
 }
 
 /* Detail-panel block for the signals the category was scored from. */
@@ -2798,6 +2804,15 @@ function calcAllDriving(){
     setStatus("Driving distance calculated for " + total.toLocaleString() + " result" + (total === 1 ? "" : "s") + ".");
   });
 }
+
+/* Picking a categorisation-signal option pre-fills its text box; the typed
+   value stays freely editable either way (see rubricSelectHTML). */
+document.addEventListener("change", function(e){
+  var pick = e.target.closest(".rubric-pick");
+  if (!pick || !pick.value) return;
+  var input = pick.parentNode.querySelector(".rubric-typed");
+  if (input) input.value = pick.value;
+});
 
 /* one delegated listener for the whole nearby block, wherever it is rendered */
 document.addEventListener("click", function(e){
