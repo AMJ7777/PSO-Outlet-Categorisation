@@ -811,7 +811,6 @@ button,input,select{font:inherit;color:inherit}
 .cards-badge.y{background:#E4F6EC;color:#00693A}
 .cards-badge.n{background:var(--panel);color:var(--ink-3)}
 .m-detail .cards-badge{font-size:13.5px;padding:8px 14px}
-.flag{font-size:12px;color:var(--ink-2);background:var(--panel);border-left:3px solid var(--pso-yellow);padding:9px 11px;border-radius:0 4px 4px 0;margin-top:12px;line-height:1.5}
 .acts{display:flex;gap:8px;margin-top:16px}
 .acts a{flex:1;text-align:center;padding:9px;border-radius:3px;text-decoration:none;font-size:12.5px;font-weight:600}
 .acts .primary{background:var(--pso-blue);color:#fff}
@@ -1219,9 +1218,7 @@ button,input,select{font:inherit;color:inherit}
         </div>
         <div class="ef-row2">
           <div class="ef"><label>Category *</label><select required id="add-category"></select></div>
-          <div class="ef"><label>Match confidence</label>
-            <select id="add-match-type"><option>Clear</option><option>Close</option><option>Tie</option></select>
-          </div>
+          <div class="ef"><label>ATP (KL/month)</label><input type="number" step="any" id="add-atp"></div>
         </div>
         <div class="ef-row2" id="add-custom-cat-row" style="display:none">
           <div class="ef"><label>New category name</label><input id="add-custom-cat-name" placeholder="New category name"></div>
@@ -1230,10 +1227,6 @@ button,input,select{font:inherit;color:inherit}
         <div class="ef-row2">
           <div class="ef"><label>Operation type</label><input id="add-operated" placeholder="e.g. Dealer Operated Site"></div>
           <div class="ef"><label>Financing</label><input id="add-finance" placeholder="e.g. Dealer Financed - A (DFA)"></div>
-        </div>
-        <div class="ef-row2">
-          <div class="ef"><label>ATP (KL/month)</label><input type="number" step="any" id="add-atp"></div>
-          <div class="ef"><label>Runner-up category</label><input id="add-runner-up"></div>
         </div>
         <div class="ef-row2">
           <div class="ef"><label>Latitude *</label><input required type="number" step="any" id="add-lat" placeholder="e.g. 33.72"></div>
@@ -1968,12 +1961,6 @@ function facilitiesBlock(o){
 
 function detailHTML(o, mobile){
   var color = COLOR_BY_CAT[o.category], bg = BG_BY_CAT[o.category];
-  var matchNote = "";
-  if (o.match_type === "Tie") {
-    matchNote = '<div class="flag">Tie vs ' + escapeHtml(o.runner_up) + ' &mdash; old PSO tag decided this. Worth a field check.</div>';
-  } else if (o.match_type === "Close") {
-    matchNote = '<div class="flag">Close call &mdash; runner-up was ' + escapeHtml(o.runner_up) + '.</div>';
-  }
   var nav = (o.lat !== null && o.lon !== null)
     ? "https://www.google.com/maps/dir/?api=1&destination=" + o.lat + "," + o.lon : null;
   var osm = (o.lat !== null && o.lon !== null)
@@ -2002,8 +1989,6 @@ function detailHTML(o, mobile){
       '<div><dt>ATP (KL/month)</dt><dd class="mono">' + (o.atp !== null && o.atp !== undefined ? o.atp : "\u2014") + '</dd></div>' +
       '<div><dt>Operation</dt><dd>' + dash(o.operated) + '</dd></div>' +
       '<div><dt>Financing</dt><dd>' + dash(o.finance) + '</dd></div>' +
-      '<div><dt>Match confidence</dt><dd>' + dash(o.match_type) + '</dd></div>' +
-      '<div><dt>Runner-up category</dt><dd>' + dash(o.runner_up) + '</dd></div>' +
       ((o.km !== undefined && isFinite(o.km)) ?
         '<div><dt>Driving distance</dt><dd class="mono">' +
           '<button class="driving-btn" type="button" data-code="' + escapeHtml(o.code) + '">Get driving distance</button>' +
@@ -2020,7 +2005,6 @@ function detailHTML(o, mobile){
         '<div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">' + escapeHtml(o.old_tag) + '</div>'
       : "") +
     rubricBlock(o) +
-    matchNote +
     '<div class="acts">' +
       (nav ? '<a class="primary" href="' + nav + '" target="_blank" rel="noopener">Directions</a>' : "") +
       (nav ? '<button class="ghost share-btn" data-share="' + escapeHtml(o.code) + '">Share location</button>' : "") +
@@ -2076,10 +2060,6 @@ function editHTML(o, mobile){
     '<div class="ef ef-row">' +
       '<div><label>Division</label><input data-ef="division" value="' + escapeHtml(o.division || "") + '"></div>' +
       '<div><label>Territory</label><input data-ef="territory" value="' + escapeHtml(o.territory || "") + '"></div>' +
-    '</div>' +
-    '<div class="ef ef-row">' +
-      '<div><label>Match confidence</label><input data-ef="match_type" value="' + escapeHtml(o.match_type || "") + '"></div>' +
-      '<div><label>Runner-up category</label><input data-ef="runner_up" value="' + escapeHtml(o.runner_up || "") + '"></div>' +
     '</div>' +
     '<div class="ef ef-row">' +
       '<div><label>ATP (KL/month)</label><input data-ef="atp" type="number" step="0.1" value="' + (o.atp !== null && o.atp !== undefined ? o.atp : "") + '"></div>' +
@@ -2170,8 +2150,6 @@ function saveEdits(code){
   o.finance    = val("finance");
   o.location   = val("location");
   o.old_tag    = val("old_tag");
-  o.match_type = val("match_type");
-  o.runner_up  = val("runner_up");
   rubricFields().forEach(function(f){ o[f.field] = val(f.field); });
 
   // Picking a category by hand pins it, so the pump-sheet rubric stops
@@ -3248,11 +3226,11 @@ document.getElementById("addPumpForm").addEventListener("submit", async function
     territory: mval("add-territory"),
     category: categoryVal,
     old_tag: mval("add-old-tag"),
-    match_type: mval("add-match-type") || "Manual",
+    match_type: "Manual",
     operated: mval("add-operated"),
     finance: mval("add-finance"),
     atp: atpVal === "" ? null : Number(atpVal),
-    runner_up: mval("add-runner-up"),
+    runner_up: "",
     lat: lat,
     lon: lon
   };
