@@ -1567,8 +1567,24 @@ function rubricFields(){
   }
   return RUBRIC_FALLBACK;
 }
+/* The workbook's DropdownLists sheet supplies choices when that sheet is
+   present, but most deployments don't carry it — so the picker also offers
+   whatever values other outlets already have recorded for this field
+   (there are only a handful of distinct ones per field in practice, since
+   they track the 5 categories), letting a match be picked instead of
+   retyped from scratch. Either source can be empty; typing is always
+   available regardless. */
 function rubricChoices(field){
-  return (SCHEMA && SCHEMA.rubricChoices && SCHEMA.rubricChoices[field]) || [];
+  var seen = {};
+  var out = [];
+  ((SCHEMA && SCHEMA.rubricChoices && SCHEMA.rubricChoices[field]) || []).forEach(function(c){
+    if (c && !seen[c]) { seen[c] = true; out.push(c); }
+  });
+  OUTLETS.forEach(function(o){
+    var v = o[field];
+    if (v && !seen[v]) { seen[v] = true; out.push(v); }
+  });
+  return out;
 }
 
 /* A signal picker: choose from the workbook's DropdownLists values, or type
