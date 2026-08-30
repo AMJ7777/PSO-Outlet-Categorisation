@@ -1107,6 +1107,12 @@ button,input,select{font:inherit;color:inherit}
   .sheet-act{min-height:var(--m-tap);font-size:15px}
   .col-row{grid-template-columns:1fr;gap:6px;padding:10px 11px}
   .col-row input[type="text"]{font-size:16px;min-height:var(--m-tap)}
+  /* Small single-field confirmation dialogs read better centred than as a
+     bottom sheet — unlike the long scrolling forms (Add pump, Import) the
+     bottom-sheet treatment above suits. */
+  #adminGateModal, #adminResetModal{align-items:center;padding:16px}
+  #adminGateModal .modal-window, #adminResetModal .modal-window{
+    max-height:none;border-radius:8px}
 }
 .map-pick-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px;
   background:var(--panel);border:1px solid var(--line);border-radius:4px;font-size:12.5px;font-weight:600;
