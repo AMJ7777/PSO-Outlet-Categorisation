@@ -1331,7 +1331,7 @@ button,input,select{font:inherit;color:inherit}
   <div class="modal-window" style="max-width:420px">
     <div class="modal-header" style="background:#8a2a20"><h2>Reset to initial state</h2><span class="modal-close" data-close="adminResetModal">&times;</span></div>
     <div class="modal-body">
-      <p class="ef-note" style="margin-top:0;color:#c0392b">&#9888; This permanently discards every add, edit, remove and import made since this reset feature shipped, and restores all 1,052 outlets to that original state &mdash; for everyone using the app. This cannot be undone.</p>
+      <p class="ef-note" style="margin-top:0;color:#c0392b">&#9888; This permanently discards every add, edit, remove and import made since this reset feature shipped, and restores all <b id="admin-reset-count">1,052</b> outlets to that original state &mdash; for everyone using the app. This cannot be undone.</p>
       <div class="ef"><label>Admin password *</label>
         <input type="password" id="admin-reset-password" autocomplete="current-password" placeholder="Required to reset">
       </div>
@@ -3373,6 +3373,7 @@ $("admin-gate-submit").addEventListener("click", submitAdminGate);
 function openAdminResetModal(){
   $("admin-reset-password").value = "";
   clearStatus("admin-reset-status");
+  $("admin-reset-count").textContent = OUTLETS.length.toLocaleString();
   openModal("adminResetModal");
 }
 function submitAdminReset(){
